@@ -1741,9 +1741,10 @@ print("[L] Hide GUI | [Tab] Switch Page")
     CreateMainWindow()
     UIWork()
     LoadAll()
--- ЛОКАЛЬНЫЙ СКРИПТ
+-- ЛОКАЛЬНЫЙ СКРИПТ (в StarterPlayerScripts или StarterGui)
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
 -- Функция затемнения
 local function applyNearBlackEffect(model)
@@ -1756,26 +1757,58 @@ local function applyNearBlackEffect(model)
     end
 end
 
--- Отслеживаем появление палет
+-- 🔥 ОТСЛЕЖИВАЕМ НАЖАТИЕ E
+local ePressed = false
+local ePressTime = 0
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Даже если игра обработала - все равно перехватываем
+    if input.KeyCode == Enum.KeyCode.E then
+        ePressed = true
+        ePressTime = tick()
+        print("⌨ E нажата! Жди клик...")
+        
+        -- Сбрасываем через 1 секунду, если клик не был сделан
+        task.wait(1)
+        if ePressed then
+            ePressed = false
+            print("⌨ Таймаут E, режим выключен")
+        end
+    end
+end)
+
+-- 🔥 ОТСЛЕЖИВАЕМ ЛЕВЫЙ КЛИК (ДАЖЕ ЕСЛИ ИГРА ЕГО ОБРАБАТЫВАЕТ)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Перехватываем клик даже если игра его обрабатывает
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- Если E была нажата в течение последней секунды
+        if ePressed and (tick() - ePressTime) < 1 then
+            _G.mySpawn = true
+            _G.mySpawnTime = tick()
+            print("✅✅✅ E + КЛИК = ТВОЙ СПАВН!")
+            
+            -- Сбрасываем E
+            ePressed = false
+            
+            -- Сбрасываем флаг спавна через 0.5 секунды
+            task.wait(0.5)
+            _G.mySpawn = false
+        else
+            print("🖱 Клик без E - не твой спавн")
+        end
+    end
+end)
+
+-- 🔥 ОТСЛЕЖИВАЕМ ПОЯВЛЕНИЕ ПАЛЕТ
 workspace.DescendantAdded:Connect(function(descendant)
     if descendant:IsA("Model") and descendant.Name == "PalletLightBrown" then
         task.wait(0.1)
         
-        -- Проверяем, появилась ли палета рядом с тобой
-        local isNearMe = false
-        if player.Character and player.Character.PrimaryPart then
-            local charPos = player.Character.PrimaryPart.Position
-            local palletPos = descendant.PrimaryPart and descendant.PrimaryPart.Position or Vector3.new(0,0,0)
-            
-            -- Если палета в радиусе 30 студий от тебя - считаем твоей
-            if (palletPos - charPos).Magnitude < 30 then
-                isNearMe = true
-            end
-        end
-        
-        -- Если это твоя палета - затемняем
-        if isNearMe then
+        if _G.mySpawn and (tick() - _G.mySpawnTime) < 0.6 then
             applyNearBlackEffect(descendant)
+            print("🎯 ТВОЯ палета затемнена!")
+        else
+            print("❌ Чужая палета, НЕ ТРОГАЕМ")
         end
     end
 end)
