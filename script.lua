@@ -1741,3 +1741,60 @@ print("[L] Hide GUI | [Tab] Switch Page")
     CreateMainWindow()
     UIWork()
     LoadAll()
+-- ЛОКАЛЬНЫЙ СКРИПТ
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Функция затемнения
+local function applyNearBlackEffect(model)
+    for _, part in ipairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Color = Color3.fromRGB(15, 15, 15)
+            part.Material = Enum.Material.Plastic
+            part.Reflectance = 0
+        end
+    end
+end
+
+-- Отслеживаем появление палет
+workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Model") and descendant.Name == "PalletLightBrown" then
+        task.wait(0.1)
+        
+        -- Проверяем, появилась ли палета рядом с тобой
+        local isNearMe = false
+        if player.Character and player.Character.PrimaryPart then
+            local charPos = player.Character.PrimaryPart.Position
+            local palletPos = descendant.PrimaryPart and descendant.PrimaryPart.Position or Vector3.new(0,0,0)
+            
+            -- Если палета в радиусе 30 студий от тебя - считаем твоей
+            if (palletPos - charPos).Magnitude < 30 then
+                isNearMe = true
+            end
+        end
+        
+        -- Если это твоя палета - затемняем
+        if isNearMe then
+            applyNearBlackEffect(descendant)
+        end
+    end
+end)
+
+-- УДАЛЕНИЕ ОКЕАНА
+local oceanFolder = workspace:FindFirstChild("Map")
+    and workspace.Map:FindFirstChild("AlwaysHereTweenedObjects")
+    and workspace.Map.AlwaysHereTweenedObjects:FindFirstChild("Ocean")
+
+local function destroyOceans(parent)
+    for _, child in pairs(parent:GetChildren()) do
+        if child.Name == "Ocean" then
+            child:Destroy()
+        elseif #child:GetChildren() > 0 then
+            destroyOceans(child)
+        end
+    end
+end
+
+if oceanFolder then
+    destroyOceans(oceanFolder)
+end
